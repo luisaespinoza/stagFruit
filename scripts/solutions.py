@@ -1,6 +1,5 @@
 import random
 import time
-# import csv  # Uncomment this when using CSV functionality
 
 # Constants
 POPULATION_SIZE = 100
@@ -16,34 +15,34 @@ PAYOFF_MATRIX = {
     ("Fruit", "Fruit"): (2, 2)
 }
 
+class Agent:
+    def __init__(self, strategy):
+        self.strategy = strategy
+        self.payoff = 0
+
 def initialize_population(pop_size, initial_ratio):
-    """Initialize the population with the given initial Worm ratio."""
-    return ['Worm' if random.random() < initial_ratio else 'Fruit' for _ in range(pop_size)]
+    """Initialize population with Agent objects."""
+    return [Agent('Worm' if random.random() < initial_ratio else 'Fruit') for _ in range(pop_size)]
 
 def play_game(population):
     """Simulate one generation: agents play the game and receive payoffs."""
-    payoffs = [0] * len(population)
     indices = list(range(len(population)))
     random.shuffle(indices)
 
     for i in range(0, len(indices) - 1, 2):
         agent1 = population[indices[i]]
         agent2 = population[indices[i + 1]]
-        payoff1, payoff2 = PAYOFF_MATRIX[(agent1, agent2)]
-        payoffs[indices[i]] = payoff1
-        payoffs[indices[i + 1]] = payoff2
+        payoff1, payoff2 = PAYOFF_MATRIX[(agent1.strategy, agent2.strategy)]
+        agent1.payoff = payoff1
+        agent2.payoff = payoff2
 
-    return payoffs
-
-def revise_strategies(population, payoffs, e):
+def revise_strategies(population, e):
     """Revise strategies based on the revision probability e."""
-    new_population = population.copy()
-    for i in range(len(population)):
+    for agent in population:
         if random.random() < e:
-            j = random.randint(0, len(population) - 1)
-            if payoffs[j] > payoffs[i]:
-                new_population[i] = population[j]
-    return new_population
+            random_agent = random.choice(population)
+            if random_agent.payoff > agent.payoff:
+                agent.strategy = random_agent.strategy
 
 def print_simulation_data(run, generation, worm_count, fruit_count, worm_proportion, average_payoff):
     """Print the simulation data for the current generation."""
@@ -65,11 +64,6 @@ def main():
     generations = int(input(f"Number of generations (default {GENERATIONS}): ") or GENERATIONS)
     runs = int(input(f"Number of simulation runs (default {SIMULATION_RUNS}): ") or SIMULATION_RUNS)
 
-    # CSV file setup (uncomment the block below to initialize the CSV file)
-    # with open('simulation_results.csv', 'w', newline='') as csvfile:
-    #     writer = csv.writer(csvfile)
-    #     writer.writerow(['run', 'generation', 'worm_count', 'fruit_count', 'worm_proportion', 'average_payoff'])
-
     for run in range(1, runs + 1):
         print(f"\nSimulation Run {run}:")
         start_time = time.time()
@@ -78,22 +72,17 @@ def main():
         population = initialize_population(pop_size, initial_ratio)
 
         for generation in range(generations):
-            payoffs = play_game(population)
-            worm_count = population.count("Worm")
+            play_game(population)
+            worm_count = sum(agent.strategy == "Worm" for agent in population)
             fruit_count = pop_size - worm_count
             worm_proportion = worm_count / pop_size
-            average_payoff = sum(payoffs) / pop_size if payoffs else 0
+            average_payoff = sum(agent.payoff for agent in population) / pop_size
 
             # Print the simulation data
             print_simulation_data(run, generation, worm_count, fruit_count, worm_proportion, average_payoff)
 
-            # CSV writing (uncomment the block below to write to CSV for each generation)
-            # with open('simulation_results.csv', 'a', newline='') as csvfile:
-            #     writer = csv.writer(csvfile)
-            #     writer.writerow([run, generation, worm_count, fruit_count, worm_proportion, average_payoff])
-
             # Update population
-            population = revise_strategies(population, payoffs, e)
+            revise_strategies(population, e)
 
         end_time = time.time()
         time_taken = end_time - start_time
@@ -101,11 +90,8 @@ def main():
 
         # For single run, print final Worm ratio
         if runs == 1:
-            final_worm_count = population.count("Worm")
-            final_worm_proportion = final_worm_count / pop_size
+            final_worm_proportion = worm_count / pop_size
             print(f"  Final Worm Ratio: {final_worm_proportion:.2f}")
 
 if __name__ == "__main__":
-    random.seed()  # Seed with system time
     main()
-
