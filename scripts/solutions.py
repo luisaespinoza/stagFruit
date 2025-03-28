@@ -19,6 +19,7 @@ class Agent:
     def __init__(self, strategy):
         self.strategy = strategy
         self.payoff = 0
+        self.total_winnings = 0  # New property to track overall payoff winnings
 
 def initialize_population(pop_size, initial_ratio):
     """Initialize population with Agent objects."""
@@ -35,6 +36,9 @@ def play_game(population):
         payoff1, payoff2 = PAYOFF_MATRIX[(agent1.strategy, agent2.strategy)]
         agent1.payoff = payoff1
         agent2.payoff = payoff2
+        # Update total winnings
+        agent1.total_winnings += payoff1
+        agent2.total_winnings += payoff2
 
 def revise_strategies(population, e):
     """Revise strategies based on the revision probability e."""
@@ -88,10 +92,13 @@ def main():
         time_taken = end_time - start_time
         print(f"  Time taken: {time_taken:.2f} seconds")
 
-        # For single run, print final Worm ratio
+        # For single run, print final Worm ratio and total winnings
         if runs == 1:
             final_worm_proportion = worm_count / pop_size
             print(f"  Final Worm Ratio: {final_worm_proportion:.2f}")
+            # Optionally, print total winnings for each agent
+            for agent in population:
+                print(f"Agent {agent.strategy}: Total Winnings = {agent.total_winnings}")
 
 if __name__ == "__main__":
     main()
